@@ -47,6 +47,44 @@ namespace YARG.Core.Song
         protected RBAudio<float> _panning = RBAudio<float>.Empty;
 
         public string RBSongId => _rbMetadata.SongID;
+
+        protected override string DemucsShareId
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(_subName))
+                {
+                    return _subName;
+                }
+
+                if (!string.IsNullOrWhiteSpace(_rbMetadata.SongID))
+                {
+                    return _rbMetadata.SongID;
+                }
+
+                return base.DemucsShareId;
+            }
+        }
+
+        protected override string DemucsReadDirectory()
+        {
+            string preferred = DemucsStemFiles.GetSharedStemDirectory(ActualLocation, DemucsShareId);
+            if (DemucsStemFiles.HasMarker(preferred))
+            {
+                return preferred;
+            }
+
+            // Older runs used the numeric song_id. Rename that folder to the short name.
+            if (!string.IsNullOrWhiteSpace(_rbMetadata.SongID) &&
+                !string.Equals(_rbMetadata.SongID, DemucsShareId, StringComparison.OrdinalIgnoreCase) &&
+                DemucsStemFiles.TryRenameStemDirectory(
+                    DemucsStemFiles.GetSharedStemDirectory(ActualLocation, _rbMetadata.SongID), preferred))
+            {
+                return preferred;
+            }
+
+            return DemucsStemFiles.ResolveStemDirectory(ActualLocation, DemucsShareId);
+        }
         public int RBBandDiff => _rbIntensities.Band;
 
         protected abstract DateTime MidiLastWriteTime { get; }
@@ -229,7 +267,7 @@ namespace YARG.Core.Song
 
         public override bool TryInstallDemucsStems(string vocalsPath, string bassPath, string drumsPath, string otherPath)
         {
-            return DemucsStemFiles.InstallSidecar(DemucsStemFiles.GetSidecarDirectory(ActualLocation), vocalsPath, bassPath, drumsPath, otherPath);
+            return InstallDemucsSidecar(vocalsPath, bassPath, drumsPath, otherPath);
         }
 
         public override bool NeedsStemSilenceProbe()
@@ -279,7 +317,7 @@ namespace YARG.Core.Song
 
         protected override StemSeparation ComputeStemSeparation()
         {
-            if (DemucsStemFiles.HasMarker(DemucsStemFiles.GetSidecarDirectory(ActualLocation)))
+            if (DemucsStemFiles.HasMarker(DemucsReadDirectory()))
             {
                 return StemSeparation.Demucs;
             }
@@ -291,7 +329,7 @@ namespace YARG.Core.Song
         public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems)
         {
             bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
-            if (DemucsStemFiles.TryLoadMixer(DemucsStemFiles.GetSidecarDirectory(ActualLocation), ToString(), speed, volume,
+            if (DemucsStemFiles.TryLoadMixer(DemucsReadDirectory(), ToString(), speed, volume,
                 clampStemVolume, ignoreStems, out var demucsMixer))
             {
                 return demucsMixer;

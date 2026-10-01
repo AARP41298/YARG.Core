@@ -643,6 +643,13 @@ namespace YARG.Core.Song.Cache
                     return;
                 }
 
+                // Stem audio is stored in {library}/demucs and is not a song folder.
+                if (directory.Name.Equals(DemucsStemFiles.FolderName, StringComparison.OrdinalIgnoreCase) &&
+                    File.Exists(Path.Combine(directory.FullName, DemucsStemFiles.MarkerFileName)))
+                {
+                    return;
+                }
+
                 switch (directory.Name)
                 {
                     case "songs_updates":

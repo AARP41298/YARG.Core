@@ -69,13 +69,12 @@ namespace YARG.Core.Song
 
         public override bool TryInstallDemucsStems(string vocalsPath, string bassPath, string drumsPath, string otherPath)
         {
-            return DemucsStemFiles.InstallSidecar(DemucsStemFiles.GetSidecarDirectory(_location), vocalsPath, bassPath, drumsPath, otherPath);
+            return InstallDemucsSidecar(vocalsPath, bassPath, drumsPath, otherPath);
         }
 
         protected override StemSeparation ComputeStemSeparation()
         {
-            string sidecar = DemucsStemFiles.GetSidecarDirectory(_location);
-            if (DemucsStemFiles.HasMarker(sidecar))
+            if (DemucsStemFiles.HasMarker(DemucsReadDirectory()))
             {
                 return StemSeparation.Demucs;
             }
@@ -94,7 +93,7 @@ namespace YARG.Core.Song
         public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems)
         {
             bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
-            if (DemucsStemFiles.TryLoadMixer(DemucsStemFiles.GetSidecarDirectory(_location), ToString(), speed, volume,
+            if (DemucsStemFiles.TryLoadMixer(DemucsReadDirectory(), ToString(), speed, volume,
                 clampStemVolume, ignoreStems, out var demucsMixer))
             {
                 return demucsMixer;
@@ -113,7 +112,7 @@ namespace YARG.Core.Song
         public override StemMixer? LoadPreviewAudio(float speed, bool enableCensoring)
         {
             bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
-            if (DemucsStemFiles.TryLoadMixer(DemucsStemFiles.GetSidecarDirectory(_location), ToString(), speed, 0,
+            if (DemucsStemFiles.TryLoadMixer(DemucsReadDirectory(), ToString(), speed, 0,
                 clampStemVolume, Array.Empty<SongStem>(), out var demucsMixer))
             {
                 return demucsMixer;

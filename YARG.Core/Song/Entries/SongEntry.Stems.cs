@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace YARG.Core.Song
@@ -80,6 +81,36 @@ namespace YARG.Core.Song
         public virtual bool TryInstallDemucsStems(string vocalsPath, string bassPath, string drumsPath, string otherPath)
         {
             return false;
+        }
+
+        /// <summary>
+        /// Song folders selected in the music library. Demucs audio is stored in a demucs folder at that root.
+        /// </summary>
+        public static void SetDemucsLibraryRoots(IEnumerable<string> roots)
+        {
+            DemucsStemFiles.SetLibraryRoots(roots);
+        }
+
+        /// <summary>
+        /// Rock Band songs use the short name so duplicate copies share one stem folder.
+        /// </summary>
+        protected virtual string DemucsShareId => Hash.ToString();
+
+        protected virtual string DemucsReadDirectory()
+        {
+            return DemucsStemFiles.ResolveStemDirectory(ActualLocation, DemucsShareId);
+        }
+
+        protected bool InstallDemucsSidecar(string vocalsPath, string bassPath, string drumsPath, string otherPath)
+        {
+            string directory = DemucsStemFiles.GetSharedStemDirectory(ActualLocation, DemucsShareId);
+            if (!DemucsStemFiles.InstallSidecar(directory, vocalsPath, bassPath, drumsPath, otherPath))
+            {
+                return false;
+            }
+
+            DemucsStemFiles.TryDeleteLegacySidecar(ActualLocation, directory);
+            return true;
         }
 
         protected virtual StemSeparation ComputeStemSeparation()
