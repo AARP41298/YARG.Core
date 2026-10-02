@@ -101,6 +101,15 @@ namespace YARG.Core.Song
             return DemucsStemFiles.ResolveStemDirectory(ActualLocation, DemucsShareId);
         }
 
+        /// <summary>
+        /// True when this song already has a Demucs folder on disk.
+        /// Does not clear a probed "missing stems" result.
+        /// </summary>
+        public bool HasInstalledDemucsStems()
+        {
+            return DemucsStemFiles.HasMarker(DemucsReadDirectory());
+        }
+
         protected bool InstallDemucsSidecar(string vocalsPath, string bassPath, string drumsPath, string otherPath)
         {
             string directory = DemucsStemFiles.GetSharedStemDirectory(ActualLocation, DemucsShareId);
