@@ -47,6 +47,7 @@ namespace YARG.Core.Song
         protected RBAudio<float> _panning = RBAudio<float>.Empty;
 
         public string RBSongId => _rbMetadata.SongID;
+        public string SubName => _subName;
 
         protected override string DemucsShareId
         {
@@ -85,6 +86,7 @@ namespace YARG.Core.Song
 
             return DemucsStemFiles.ResolveStemDirectory(ActualLocation, DemucsShareId);
         }
+
         public int RBBandDiff => _rbIntensities.Band;
 
         protected abstract DateTime MidiLastWriteTime { get; }
