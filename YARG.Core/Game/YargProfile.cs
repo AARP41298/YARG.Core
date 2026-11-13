@@ -24,6 +24,9 @@ namespace YARG.Core.Game
         public Guid Id;
         public string Name;
 
+        [NonSerialized]
+        public YARGImage? Avatar;
+
         public bool IsBot;
 
         public GameMode GameMode;
@@ -188,6 +191,8 @@ namespace YARG.Core.Game
             HighwayPreset = Game.HighwayPreset.Default.Id;
             RockMeterPreset = Game.RockMeterPreset.Normal.Id;
 
+            // Default to easy difficulty
+            CurrentDifficulty = Difficulty.Easy;
             CurrentModifiers = Modifier.None;
             _savedModifiers = Modifier.None;
         }

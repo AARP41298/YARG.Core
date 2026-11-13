@@ -50,7 +50,7 @@ namespace YARG.Core.Song
 
         protected static readonly string[] VIDEO_EXTENSIONS =
         {
-            ".mp4", ".mov", ".webm",
+            ".mp4", ".mov", ".webm", ".mkv",
         };
 
         protected static readonly string[] IMAGE_EXTENSIONS =
@@ -105,6 +105,7 @@ namespace YARG.Core.Song
         public string ParsedYear => _parsedYear;
         public int YearAsNumber => _yearAsNumber;
         public string YearSecondary => _metadata.YearSecondary;
+        public DateTime? ReleaseDate => _metadata.ReleaseDate;
 
         public bool IsMaster => _metadata.IsMaster;
         public bool VideoLoop => _metadata.VideoLoop;
@@ -212,6 +213,15 @@ namespace YARG.Core.Song
         public bool IsDuplicate => _isDuplicate;
 
         public abstract DateTime GetLastWriteTime();
+
+        /// <summary>
+        /// Gets the last-modified time of the file containing the chart.
+        /// Unlike <see cref="GetLastWriteTime"/>, this does not consider the file creation time.
+        /// </summary>
+        public virtual DateTime GetLastModifiedTime()
+        {
+            return File.GetLastWriteTime(ActualLocation);
+        }
 
         public override string ToString() { return Artist + " | " + Name; }
 
@@ -402,6 +412,11 @@ namespace YARG.Core.Song
             stream.Write(_metadata.CoveredBy);
             stream.Write(_metadata.LoadingPhrase);
             stream.Write(_metadata.YearSecondary);
+            stream.Write(_metadata.ReleaseDate.HasValue);
+            if (_metadata.ReleaseDate.HasValue)
+            {
+                stream.Write(_metadata.ReleaseDate.Value.ToBinary(), Endianness.Little);
+            }
 
             stream.Write(_metadata.LinkBandcamp);
             stream.Write(_metadata.LinkBluesky);
@@ -502,6 +517,9 @@ namespace YARG.Core.Song
             _metadata.CoveredBy = stream.ReadString();
             _metadata.LoadingPhrase = stream.ReadString();
             _metadata.YearSecondary = stream.ReadString();
+            _metadata.ReleaseDate = stream.ReadBoolean()
+                ? DateTime.FromBinary(stream.Read<long>(Endianness.Little))
+                : null;
 
             _metadata.LinkBandcamp = stream.ReadString();
             _metadata.LinkBluesky = stream.ReadString();
