@@ -659,9 +659,9 @@ namespace YARG.Core.Song.Cache
                     return;
                 }
 
-                // Stem audio is stored in {library}/demucs and is not a song folder.
-                if (directory.Name.Equals(DemucsStemFiles.FolderName, StringComparison.OrdinalIgnoreCase) &&
-                    File.Exists(Path.Combine(directory.FullName, DemucsStemFiles.MarkerFileName)))
+                // Custom stems are stored in {library}/demucs, which is not a song folder.
+                if (directory.Name.Equals(CustomStems.FolderName, StringComparison.OrdinalIgnoreCase) &&
+                    CustomStems.HasMarker(directory.FullName))
                 {
                     return;
                 }

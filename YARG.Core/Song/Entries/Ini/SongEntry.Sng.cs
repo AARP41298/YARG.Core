@@ -28,55 +28,13 @@ namespace YARG.Core.Song
             base.Serialize(stream, indices);
         }
 
-        public override bool TryExportFullMix(string destinationWithoutExtension, out string exportedPath)
-        {
-            exportedPath = string.Empty;
-            using var sngFile = SngFile.TryLoadFromFile(_location, false);
-            if (!sngFile.IsLoaded)
-            {
-                return false;
-            }
-
-            string? bestName = null;
-            long bestLength = DemucsStemFiles.PlaceholderMaxBytes;
-            foreach (var format in IniAudio.SupportedFormats)
-            {
-                string name = "song" + format;
-                if (!sngFile.TryGetListing(name, out var listing) || listing.Length <= bestLength)
-                {
-                    continue;
-                }
-
-                bestName = name;
-                bestLength = listing.Length;
-                exportedPath = destinationWithoutExtension + format;
-            }
-
-            if (bestName == null || !sngFile.TryGetListing(bestName, out var bestListing))
-            {
-                exportedPath = string.Empty;
-                return false;
-            }
-
-            using var data = sngFile.LoadAllBytes(in bestListing);
-            using (var output = File.Create(exportedPath))
-            {
-                output.Write(data.ReadOnlySpan);
-            }
-
-            return true;
-        }
-
-        public override bool TryInstallDemucsStems(string vocalsPath, string bassPath, string drumsPath, string otherPath)
-        {
-            return InstallDemucsSidecar(vocalsPath, bassPath, drumsPath, otherPath);
-        }
+        private string CustomStemDirectory => CustomStems.GetStemDirectory(_location, CustomStems.SngId(_location));
 
         protected override StemSeparation ComputeStemSeparation()
         {
-            if (DemucsStemFiles.HasMarker(DemucsReadDirectory()))
+            if (CustomStems.HasMarker(CustomStemDirectory))
             {
-                return StemSeparation.Demucs;
+                return StemSeparation.Custom;
             }
 
             using var sngFile = SngFile.TryLoadFromFile(_location, false);
@@ -85,7 +43,7 @@ namespace YARG.Core.Song
                 return StemSeparation.Present;
             }
 
-            return sngFile.Listings != null && DemucsStemFiles.ArchiveMissesCoreStems(sngFile.Listings)
+            return sngFile.Listings != null && CustomStems.ArchiveMissesCoreStems(sngFile.Listings)
                 ? StemSeparation.Missing
                 : StemSeparation.Present;
         }
@@ -93,10 +51,10 @@ namespace YARG.Core.Song
         public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems)
         {
             bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
-            if (DemucsStemFiles.TryLoadMixer(DemucsReadDirectory(), ToString(), speed, volume,
-                clampStemVolume, ignoreStems, out var demucsMixer))
+            if (CustomStems.TryLoadMixer(CustomStemDirectory, ToString(), speed, volume,
+                clampStemVolume, ignoreStems, out var customMixer))
             {
-                return demucsMixer;
+                return customMixer;
             }
 
             using var sngFile = SngFile.TryLoadFromFile(_location, false);
@@ -112,10 +70,10 @@ namespace YARG.Core.Song
         public override StemMixer? LoadPreviewAudio(float speed, bool enableCensoring)
         {
             bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
-            if (DemucsStemFiles.TryLoadMixer(DemucsReadDirectory(), ToString(), speed, 0,
-                clampStemVolume, Array.Empty<SongStem>(), out var demucsMixer))
+            if (CustomStems.TryLoadMixer(CustomStemDirectory, ToString(), speed, 0,
+                clampStemVolume, Array.Empty<SongStem>(), out var customMixer))
             {
-                return demucsMixer;
+                return customMixer;
             }
 
             using var sngFile = SngFile.TryLoadFromFile(_location, false);

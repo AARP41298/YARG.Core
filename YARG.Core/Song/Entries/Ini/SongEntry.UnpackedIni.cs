@@ -49,24 +49,15 @@ namespace YARG.Core.Song
             base.Serialize(stream, node);
         }
 
-        public override bool TryExportFullMix(string destinationWithoutExtension, out string exportedPath)
-        {
-            return DemucsStemFiles.TryExportSongStem(_location, destinationWithoutExtension, out exportedPath);
-        }
-
-        public override bool TryInstallDemucsStems(string vocalsPath, string bassPath, string drumsPath, string otherPath)
-        {
-            return DemucsStemFiles.InstallIntoSongFolder(_location, vocalsPath, bassPath, drumsPath, otherPath);
-        }
-
         protected override StemSeparation ComputeStemSeparation()
         {
-            if (DemucsStemFiles.HasMarker(_location))
+            // A stem tool writes the stems into the folder itself and leaves a marker file.
+            if (CustomStems.HasMarker(_location))
             {
-                return StemSeparation.Demucs;
+                return StemSeparation.Custom;
             }
 
-            return DemucsStemFiles.FolderMissesCoreStems(_location)
+            return CustomStems.FolderMissesCoreStems(_location)
                 ? StemSeparation.Missing
                 : StemSeparation.Present;
         }

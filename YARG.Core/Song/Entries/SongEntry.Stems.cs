@@ -1,125 +1,47 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
 
 namespace YARG.Core.Song
 {
     public enum StemSeparation
     {
+        /// <summary>The song has its own vocals, bass, or drums.</summary>
         Present,
+        /// <summary>Vocals, bass, and drums are all absent, so the full mix is the song stem.</summary>
         Missing,
-        Demucs,
+        /// <summary>Stems made by an outside tool are installed and used instead of the full mix.</summary>
+        Custom,
     }
 
     public abstract partial class SongEntry
     {
-        protected StemSeparation? _stemSeparation;
-        protected bool _stemSilenceKnown;
+        private static int _stemGeneration;
+
+        private StemSeparation _stemSeparation;
+        private int _stemSeparationGeneration = -1;
 
         /// <summary>
-        /// Missing means vocals, bass, and drums are all absent, so the full mix is the song stem.
-        /// Demucs means those stems were generated and the song stem is Demucs "other".
+        /// Whether this song is missing stems or uses custom ones. Checked again after
+        /// <see cref="SetCustomStemLibraryRoots"/>, so stems added while YARG runs show up.
         /// </summary>
         public StemSeparation GetStemSeparation()
         {
-            return _stemSeparation ??= ComputeStemSeparation();
-        }
-
-        public void InvalidateStemSeparation()
-        {
-            _stemSeparation = null;
-            _stemSilenceKnown = false;
-        }
-
-        /// <summary>
-        /// CON songs often list drums, bass, and vocals even when those channels are silent
-        /// and the full mix lives in the song stem. The library probes that audio once.
-        /// </summary>
-        public virtual bool NeedsStemSilenceProbe()
-        {
-            return false;
-        }
-
-        public void SetProbedStemSeparation(StemSeparation value)
-        {
-            if (value != StemSeparation.Demucs && ComputeStemSeparation() == StemSeparation.Demucs)
+            int generation = _stemGeneration;
+            if (_stemSeparationGeneration != generation)
             {
-                _stemSeparation = StemSeparation.Demucs;
-                _stemSilenceKnown = true;
-                return;
+                _stemSeparation = ComputeStemSeparation();
+                _stemSeparationGeneration = generation;
             }
 
-            _stemSeparation = value;
-            _stemSilenceKnown = true;
-        }
-
-        public virtual bool TryOpenOggAudio(out Stream audio, out int[] drumChannels, out int[] bassChannels, out int[] vocalChannels)
-        {
-            audio = null!;
-            drumChannels = Array.Empty<int>();
-            bassChannels = Array.Empty<int>();
-            vocalChannels = Array.Empty<int>();
-            return false;
-        }
-
-        public virtual bool TryExportFullMix(string destinationWithoutExtension, out string exportedPath)
-        {
-            exportedPath = string.Empty;
-            return false;
+            return _stemSeparation;
         }
 
         /// <summary>
-        /// Channel indices of the song stem inside a packed multi-channel mix.
-        /// False when the exported file is already that mix.
+        /// Song folders selected in the music library. Custom stems are read from a demucs folder at each root.
         /// </summary>
-        public virtual bool TryGetSongStemChannels(out int[] channels)
+        public static void SetCustomStemLibraryRoots(IEnumerable<string> roots)
         {
-            channels = Array.Empty<int>();
-            return false;
-        }
-
-        public virtual bool TryInstallDemucsStems(string vocalsPath, string bassPath, string drumsPath, string otherPath)
-        {
-            return false;
-        }
-
-        /// <summary>
-        /// Song folders selected in the music library. Demucs audio is stored in a demucs folder at that root.
-        /// </summary>
-        public static void SetDemucsLibraryRoots(IEnumerable<string> roots)
-        {
-            DemucsStemFiles.SetLibraryRoots(roots);
-        }
-
-        /// <summary>
-        /// Rock Band songs use the short name so duplicate copies share one stem folder.
-        /// </summary>
-        protected virtual string DemucsShareId => Hash.ToString();
-
-        protected virtual string DemucsReadDirectory()
-        {
-            return DemucsStemFiles.ResolveStemDirectory(ActualLocation, DemucsShareId);
-        }
-
-        /// <summary>
-        /// True when this song already has a Demucs folder on disk.
-        /// Does not clear a probed "missing stems" result.
-        /// </summary>
-        public bool HasInstalledDemucsStems()
-        {
-            return DemucsStemFiles.HasMarker(DemucsReadDirectory());
-        }
-
-        protected bool InstallDemucsSidecar(string vocalsPath, string bassPath, string drumsPath, string otherPath)
-        {
-            string directory = DemucsStemFiles.GetSharedStemDirectory(ActualLocation, DemucsShareId);
-            if (!DemucsStemFiles.InstallSidecar(directory, vocalsPath, bassPath, drumsPath, otherPath))
-            {
-                return false;
-            }
-
-            DemucsStemFiles.TryDeleteLegacySidecar(ActualLocation, directory);
-            return true;
+            CustomStems.SetLibraryRoots(roots);
+            System.Threading.Interlocked.Increment(ref _stemGeneration);
         }
 
         protected virtual StemSeparation ComputeStemSeparation()
