@@ -132,6 +132,43 @@ namespace YARG.Core.Song
             return null;
         }
 
+        protected override bool ComputeHasVideoBackground()
+        {
+            using (var sngFile = SngFile.TryLoadFromFile(_location, false))
+            {
+                if (sngFile.IsLoaded)
+                {
+                    if (!string.IsNullOrEmpty(_video) && sngFile.TryGetListing(_video, out _))
+                    {
+                        return true;
+                    }
+
+                    foreach (var stem in BACKGROUND_FILENAMES)
+                    {
+                        foreach (var name in GetVideoFileNames(stem))
+                        {
+                            if (sngFile.TryGetListing(name, out _))
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Videos placed next to the .sng file (same paths LoadBackground checks)
+            foreach (var ext in VIDEO_EXTENSIONS)
+            {
+                if (File.Exists(Path.ChangeExtension(_location, ext))
+                    || File.Exists(Path.ChangeExtension(_location + CLEAN_BACKGROUND_SUFFIX, ext))
+                    || File.Exists(Path.ChangeExtension(_location + EXPLICIT_BACKGROUND_SUFFIX, ext)))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public override BackgroundResult? LoadBackground(bool enableCensoring, bool excludeYarground = false)
         {
             using var sngFile = SngFile.TryLoadFromFile(_location, false);

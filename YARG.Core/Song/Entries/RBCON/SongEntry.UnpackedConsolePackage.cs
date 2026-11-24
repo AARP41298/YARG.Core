@@ -46,6 +46,21 @@ namespace YARG.Core.Song
             return image;
         }
 
+        protected override bool ComputeHasVideoBackground()
+        {
+            foreach (var name in BACKGROUND_FILENAMES)
+            {
+                foreach (var file in GetVideoFileNames(Path.Combine(_root.FullName, _subName, name)))
+                {
+                    if (File.Exists(file))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         public override BackgroundResult? LoadBackground(bool enableCensoring, bool excludeYarground = false)
         {
             string yarground = Path.Combine(_root.FullName, _subName, YARGROUND_FULLNAME);

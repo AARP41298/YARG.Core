@@ -54,5 +54,49 @@ namespace YARG.Core.Song
         public abstract BackgroundResult? LoadBackground(bool enableCensoring, bool excludeYarground = false);
         public abstract FixedArray<byte>? LoadMiloData();
         public abstract FixedArray<byte>? LoadVocData();
+
+        // -1 = not checked yet, 0 = no, 1 = yes
+        private int _hasVideoBackground = -1;
+
+        /// <summary>
+        /// Whether the song ships a background video. Only checks that a file exists (nothing is
+        /// opened or decoded), and the result is cached after the first call.
+        /// </summary>
+        public bool HasVideoBackground()
+        {
+            int value = _hasVideoBackground;
+            if (value < 0)
+            {
+                try
+                {
+                    value = ComputeHasVideoBackground() ? 1 : 0;
+                }
+                catch (Exception)
+                {
+                    value = 0;
+                }
+                _hasVideoBackground = value;
+            }
+            return value == 1;
+        }
+
+        protected virtual bool ComputeHasVideoBackground()
+        {
+            return false;
+        }
+
+        /// <summary>
+        /// Every file name <see cref="LoadBackground"/> accepts as a video for the given base name,
+        /// in either censoring mode.
+        /// </summary>
+        protected static System.Collections.Generic.IEnumerable<string> GetVideoFileNames(string baseName)
+        {
+            foreach (var ext in VIDEO_EXTENSIONS)
+            {
+                yield return baseName + ext;
+                yield return baseName + CLEAN_BACKGROUND_SUFFIX + ext;
+                yield return baseName + EXPLICIT_BACKGROUND_SUFFIX + ext;
+            }
+        }
     }
 }

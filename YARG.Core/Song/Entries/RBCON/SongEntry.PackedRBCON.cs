@@ -52,6 +52,30 @@ namespace YARG.Core.Song
             return LoadExternalBackground(_root.FullName, _subName, excludeYarground, enableCensoring);
         }
 
+        protected override bool ComputeHasVideoBackground()
+        {
+            if (_midiListing == null)
+            {
+                return false;
+            }
+
+            string conPath = _root.FullName;
+            string actualDirectory = Path.GetDirectoryName(conPath)!;
+            string conName = Path.GetFileName(conPath);
+            string conNameWithoutExtension = Path.GetFileNameWithoutExtension(conPath);
+            foreach (var name in GetPackedBackgroundNames(_subName, conName, conNameWithoutExtension, includeVideo: true))
+            {
+                foreach (var file in GetVideoFileNames(Path.Combine(actualDirectory, name)))
+                {
+                    if (File.Exists(file))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         internal static BackgroundResult? LoadExternalBackground(string conPath, string subName, bool excludeYarground, bool enableCensoring)
         {
             string actualDirectory = Path.GetDirectoryName(conPath)!;

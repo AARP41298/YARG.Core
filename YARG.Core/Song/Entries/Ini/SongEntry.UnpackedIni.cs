@@ -227,6 +227,27 @@ namespace YARG.Core.Song
             return null;
         }
 
+        protected override bool ComputeHasVideoBackground()
+        {
+            var subFiles = GetSubFiles();
+            if (!string.IsNullOrEmpty(_video) && subFiles.ContainsKey(_video))
+            {
+                return true;
+            }
+
+            foreach (var stem in BACKGROUND_FILENAMES)
+            {
+                foreach (var name in GetVideoFileNames(stem))
+                {
+                    if (subFiles.ContainsKey(name))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         public override BackgroundResult? LoadBackground(bool enableCensoring, bool excludeYarground = false)
         {
             var subFiles = GetSubFiles();
